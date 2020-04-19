@@ -1,0 +1,96 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "riddle me today",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "RiddleIntent",
+          "slots": [],
+          "samples": [
+            "bring a riddle",
+            "give me today\u0027s riddle",
+            "what is today\u0027s riddle",
+            "tell me a riddle"
+          ]
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.YesIntent",
+          "samples": []
+        },
+        {
+          "name": "AnswerIntent",
+          "slots": [
+            {
+              "name": "answer",
+              "type": "RiddleAnswers"
+            }
+          ],
+          "samples": [
+            "I think it is {answer}",
+            "{answer}",
+            "may be {answer}",
+            "is it {answer}"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "values": [
+            {
+              "name": {
+                "value": "Cold",
+                "synonyms": [
+                  "the cold"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "Prawns",
+                "synonyms": [
+                  "ches prawns",
+                  "the prawns"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "Stamp",
+                "synonyms": [
+                  "the stamp"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "Piano",
+                "synonyms": [
+                  "pianos",
+                  "the piano"
+                ]
+              }
+            }
+          ],
+          "name": "RiddleAnswers"
+        }
+      ]
+    }
+  },
+  "version": "3"
+}
