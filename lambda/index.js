@@ -4,6 +4,9 @@
 const Alexa = require('ask-sdk-core');
 const skillData = require('skillData.js');
 const persistenceAdapter = require('ask-sdk-s3-persistence-adapter');
+const sdk = require('@alexa-games/skills-gameon-sdk');
+const GameOn = require('./gameOn.js');
+
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
@@ -21,20 +24,37 @@ const LaunchRequestHandler = {
         
         let persistentAttributes = await handlerInput.attributesManager.getPersistentAttributes();
         console.log(persistentAttributes.FIRST_TIME);
+        let dataToSave = {};
+        let player = persistentAttributes.PLAYER;
         
-        if (persistentAttributes.FIRST_TIME === undefined){
+        //if the user is coming for the first time or don;t create a player profile the player is undefined
+        if(persistentAttributes.FIRST_TIME === undefined && player === undefined){
             //first time user
-            const dataToSave = {
-                "FIRST_TIME":false
+            //create a player
+            player = await GameOn.newPlayer();//due to API call, need to wait the API return
+           
+            dataToSave = {
+                "FIRST_TIME":false,
+                "PLAYER": player
             }
+            //save into database
+            save(handlerInput, dataToSave, null);
             speakOutput = data["WELCOME_MESSAGE"] + data["QUESTION"];
+            //getting out and create a new method save() to access the database, also can change the key
+            /*
             const attributesManager = handlerInput.attributesManager;
             //set attributes
             attributesManager.setPersistentAttributes(dataToSave);
             //finally save the attributes
             await attributesManager.savePersistentAttributes();
+            */
         } else {
-            //not first time user
+            //not first time user, user come back, refresh their session
+            player = await GameOn.refreshPlayerSession(player);
+            dataToSave = {
+                "PLAYER": player
+            }
+            save(handlerInput, dataToSave, null);
             speakOutput = data["REYURNING_USERS_WELCOME"] + data["QUESTION"];
         }
         
@@ -44,6 +64,33 @@ const LaunchRequestHandler = {
             .getResponse();
     }
 };
+
+//handlerInput--input you get, attributesToSave--save into database, 
+//attributesToDelete things you want to delete form database
+//helper method can always use to save and delete form database
+function save(handlerInput, attributesToSave, attributesToDelete) {
+    return new Promise((resolve, reject) => {
+        handlerInput.attributesManager.getPersistentAttributes()
+            .then((attributes) => {
+                //add to save 
+                for (let key in attributesToSave) {
+                    attributes[key] = attributesToSave[key];
+                }
+                //to delete
+                if (null !== attributesToDelete) {
+                    attributesToDelete.forEach(function (element) {
+                        delete attributes[element];
+                    });
+                }
+                handlerInput.attributesManager.setPersistentAttributes(attributes);
+
+                return handlerInput.attributesManager.savePersistentAttributes();
+            })
+            .catch((error) => {
+                reject(error);
+            });
+    });
+}
 
 //globalization 
 function getLocalizedData(locale){
@@ -84,7 +131,7 @@ const AnswerIntentHandler = {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AnswerIntent';
     },
-    handle(handlerInput) {
+    async handle(handlerInput) {
         const data = getLocalizedData(handlerInput.requestEnvelope.request.locale);
         //capture the user's answer 
         const userAnswer = handlerInput.requestEnvelope.request.intent.slots.answer.resolutions.resolutionsPerAuthority[0].values[0].value.name;
@@ -93,9 +140,17 @@ const AnswerIntentHandler = {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         const correctAnswer = sessionAttributes.RIGHT_ANSWER;
         
+        let persistentAttributes = await handlerInput.attributesManager.getPersistentAttributes();
+        // player = await GameOn.refreshPlayerSession(player);
+        let player = persistentAttributes.PLAYER;
         let speakOutput = '';
+                
         if(correctAnswer === userAnswer) {
+            await GameOn.submitScore(player, 10);
+            const playerScore = await GameOn.getPlayerScore(player);
+            console.log("Score"+JSON.stringify(playerScore));
             speakOutput = "Correct Answer. You get X points";
+            
         } else {
             speakOutput = "Wrong Answer. You only have x chances remaining.";
         }
